@@ -5,10 +5,13 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"../../internal/acmetest"
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -19,6 +22,15 @@ const (
 
 func main() {
 	// key, err := rsa.GenerateKey(rand.Reader, 2048)
+	var contactsArg string
+	pflag.StringVar(&contactsArg, "contacts", "somebody@example.org", "Command separated list of email contacts")
+	pflag.Parse()
+
+	contacts := strings.Split(contactsArg, ",")
+	for i := range contacts {
+		contacts[i] = fmt.Sprintf("mailto:%s", strings.TrimSpace(contacts[i]))
+	}
+
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +40,7 @@ func main() {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	client, err := acmetest.NewClient(acmeURL, key, []string{"mailto:someone@example.org"})
+	client, err := acmetest.NewClient(acmeURL, key, contacts)
 	if err != nil {
 		log.Fatal(err)
 	}
