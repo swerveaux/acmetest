@@ -18,7 +18,7 @@ func (c *Client) newAccount(contactEmails []string) error {
 		TermsOfServiceAgreed: true,
 	}
 
-	res, err := c.makeRequest(newAcct, c.Directory.NewAccount)
+	res, err := c.makeRequest(newAcct, c.Directory.NewAccount, false)
 
 	fmt.Println(string(res))
 

@@ -1,5 +1,12 @@
 package acmetest
 
+// Most of the functions in this file are directly cribbed
+// from github.com/golang/x/crypto/acme/jws.go, mostly for
+// the jws token creation and signing for the ACME client.
+// That had just about everything we needed but wasn't
+// exported and also didn't allow arbitrary headers for the
+// "protected" section, which the ACME protocol requires.
+
 import (
 	"crypto"
 	"crypto/ecdsa"
@@ -42,7 +49,7 @@ type publicKey struct {
 
 // JWSEncodeJSON signs a claimset using provided key and a nonce.
 // The result is serialized in JSON format.
-func (c *Client) JWSEncodeJSON(claimset interface{}, url string) ([]byte, error) {
+func (c *Client) JWSEncodeJSON(claimset interface{}, url string, postAsGet bool) ([]byte, error) {
 	var b []byte
 	jwk, err := jwkEncode(c.Key.Public())
 	if err != nil {
@@ -67,7 +74,12 @@ func (c *Client) JWSEncodeJSON(claimset interface{}, url string) ([]byte, error)
 		return b, err
 	}
 
-	payload := base64.RawURLEncoding.EncodeToString(cs)
+	var payload string
+	if postAsGet {
+		payload = ""
+	} else {
+		payload = base64.RawURLEncoding.EncodeToString(cs)
+	}
 	hash := sha.New()
 	hash.Write([]byte(phead + "." + payload))
 
