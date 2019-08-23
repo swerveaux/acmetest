@@ -22,6 +22,11 @@ func (c *Client) AddTextRecord(domain, token string) error {
 	}
 	fmt.Println(input.String())
 
+	_, err = c.R53.ChangeResourceRecordSets(input)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -30,13 +35,13 @@ func (c *Client) FindHostedZoneID(domain string) (string, error) {
 	return findHostedZoneID(c.R53, domain)
 }
 
-func createAddTextRecordInput(hostedZoneID, hostname, token string) (*route53.ChangeResourceRecordSetsInput, error) {
-	host, _, err := splitHostname(hostname)
-	if err != nil {
-		return nil, err
-	}
-
+func createAddTextRecordInput(hostedZoneID, domain, token string) (*route53.ChangeResourceRecordSetsInput, error) {
 	var input route53.ChangeResourceRecordSetsInput
+
+	// Strip leading wildcard for text record if present.
+	if domain[:2] == "*." {
+		domain = domain[2:]
+	}
 
 	input = route53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &route53.ChangeBatch{
@@ -44,10 +49,10 @@ func createAddTextRecordInput(hostedZoneID, hostname, token string) (*route53.Ch
 				{
 					Action: aws.String("CREATE"),
 					ResourceRecordSet: &route53.ResourceRecordSet{
-						Name: aws.String(fmt.Sprintf("_acme-challenge.%s", host)),
+						Name: aws.String(fmt.Sprintf("_acme-challenge.%s", domain)),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
-								Value: aws.String(token),
+								Value: aws.String(fmt.Sprintf("%q", token)),
 							},
 						},
 						TTL:  aws.Int64(20),
@@ -105,7 +110,7 @@ func splitHostname(hostname string) (string, string, error) {
 	s := strings.Split(hostname, ".")
 	h := make([]string, 0, 0)
 	for _, t := range s {
-		if t != "" {
+		if t != "" && t != "*" {
 			h = append(h, t)
 		}
 	}
