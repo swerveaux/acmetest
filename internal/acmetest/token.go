@@ -74,6 +74,7 @@ func (c *Client) JWSEncodeJSON(claimset interface{}, url string, postAsGet bool)
 		return b, err
 	}
 
+	fmt.Printf("Encoding %s into base64\n", cs)
 	var payload string
 	if postAsGet {
 		payload = ""

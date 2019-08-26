@@ -16,7 +16,7 @@ func (c *Client) AddTextRecord(domain, token string) error {
 		return err
 	}
 
-	input, err := createAddTextRecordInput(hostedZoneID, domain, token)
+	input, err := createChangeRecordSetInput(hostedZoneID, domain, token, "UPSERT")
 	if err != nil {
 		return err
 	}
@@ -30,12 +30,32 @@ func (c *Client) AddTextRecord(domain, token string) error {
 	return nil
 }
 
+// RemoveTextRecord removes the ACME challenge text record for cleanup.
+func (c *Client) RemoveTextRecord(domain, token string) error {
+	hostedZoneID, err := findHostedZoneID(c.R53, domain)
+	if err != nil {
+		return err
+	}
+
+	input, err := createChangeRecordSetInput(hostedZoneID, domain, token, "DELETE")
+	if err != nil {
+		return err
+	}
+	fmt.Println(input.String())
+	_, err = c.R53.ChangeResourceRecordSets(input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // FindHostedZoneID is a probably temporary exported function to find the HostedZoneID for a domain
 func (c *Client) FindHostedZoneID(domain string) (string, error) {
 	return findHostedZoneID(c.R53, domain)
 }
 
-func createAddTextRecordInput(hostedZoneID, domain, token string) (*route53.ChangeResourceRecordSetsInput, error) {
+func createChangeRecordSetInput(hostedZoneID, domain, token, action string) (*route53.ChangeResourceRecordSetsInput, error) {
 	var input route53.ChangeResourceRecordSetsInput
 
 	// Strip leading wildcard for text record if present.
@@ -47,7 +67,7 @@ func createAddTextRecordInput(hostedZoneID, domain, token string) (*route53.Chan
 		ChangeBatch: &route53.ChangeBatch{
 			Changes: []*route53.Change{
 				{
-					Action: aws.String("CREATE"),
+					Action: aws.String(action),
 					ResourceRecordSet: &route53.ResourceRecordSet{
 						Name: aws.String(fmt.Sprintf("_acme-challenge.%s", domain)),
 						ResourceRecords: []*route53.ResourceRecord{

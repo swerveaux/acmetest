@@ -4,11 +4,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"../../internal/acmetest"
 	"github.com/spf13/pflag"
@@ -41,12 +43,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	acmeURL := acmeLocalURL
+
+	certKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	acmeURL := acmeStagingURL
 	if acmeURL == acmeLocalURL {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	client, err := acmetest.NewClient(acmeURL, key, contacts)
+	client, err := acmetest.NewClient(acmeURL, key, certKey, contacts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -75,4 +83,25 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		err = client.RemoveTextRecord(domains[0], authHash)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	<-time.After(1 * time.Minute)
+
+	err = client.ChallengeReady(challenge.URL)
+	if err != nil {
+		log.Printf("Failed posting challenge: %v\n", err)
+		return
+	}
+
+	err = client.PollForStatus(domains[0])
+	if err != nil {
+		log.Printf("Bad response when polling: %v\n", err)
+	}
+
 }
