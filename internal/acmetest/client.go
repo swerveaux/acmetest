@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	jose "gopkg.in/square/go-jose.v2"
 )
@@ -22,16 +23,17 @@ import (
 // of the current Nonce, the ecdsa key for signing messages, and
 // the keyID.
 type Client struct {
-	Nonce         string
-	KID           string
-	Key           *ecdsa.PrivateKey
-	Directory     Directory
-	AWSSession    *session.Session
-	R53           *route53.Route53
-	OrderURL      string
-	ContactEmails []string
-	Finalize      string
-	CertKey       *rsa.PrivateKey
+	Nonce          string
+	KID            string
+	Key            *ecdsa.PrivateKey
+	Directory      Directory
+	AWSSession     *session.Session
+	R53            *route53.Route53
+	SecretsManager *secretsmanager.SecretsManager
+	OrderURL       string
+	ContactEmails  []string
+	Finalize       string
+	CertKey        *rsa.PrivateKey
 }
 
 // NewClient takes a directory URL and *ecdsa.PrivateKey and sets up a client.   It will populate
@@ -62,6 +64,7 @@ func NewClient(dirURL string, key *ecdsa.PrivateKey, certKey *rsa.PrivateKey, co
 	}
 
 	c.R53 = route53.New(c.AWSSession)
+	c.SecretsManager = secretsmanager.New(c.AWSSession)
 
 	return c, nil
 }

@@ -27,8 +27,6 @@ type CertIdentifier struct {
 // CertApply lets us marshal the JSON cert application
 type CertApply struct {
 	Identifiers []CertIdentifier `json:"identifiers"`
-	// 	NotBefore   time.Time        `json:"notBefore,omitempty"`
-	// 	NotAfter    time.Time        `json:"notAfter,omitempty"`
 }
 
 // CertResponse lets us unmarshal the response for a cert application
@@ -156,30 +154,6 @@ func (c *Client) PollForStatus(domain string) error {
 		return err
 	}
 
-	// 	fmt.Println(string(res))
-
-	// challengeFinished = false
-	// for !challengeFinished {
-	// 	<-time.After(5 * time.Second)
-	// 	res, err = c.makeRequest(EmptyRequest{}, c.OrderURL, true)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	fmt.Println("While polling, got...")
-	// 	fmt.Println(string(res))
-	// 	err = json.Unmarshal(res, &certRes)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	if certRes.Status == "valid" || certRes.Status == "invalid" {
-	// 		fmt.Printf("Setting challengeFinished to true because status was %q\n", certRes.Status)
-	// 		challengeFinished = true
-	// 	}
-	// }
-
-	// fmt.Println(string(res))
-	// fmt.Printf("Finalize is %q", c.Finalize)
-
 	keyfile, err := os.Create("/tmp/cert.key")
 	if err != nil {
 		return err
@@ -219,5 +193,7 @@ func (c *Client) PollForStatus(domain string) error {
 	certwriter.Write(cert)
 	certwriter.Flush()
 
-	return nil
+	err = c.addSecrets(string(pemdata), string(cert), domain)
+
+	return err
 }
