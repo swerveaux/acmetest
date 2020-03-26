@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"time"
 )
@@ -154,7 +152,7 @@ func (c *Client) PollForStatus(domain string) error {
 		return err
 	}
 
-	keyfile, err := os.Create("/tmp/cert.key")
+	keyfile, err := os.Create("cert.key")
 	if err != nil {
 		return err
 	}
@@ -169,21 +167,19 @@ func (c *Client) PollForStatus(domain string) error {
 	_, err = keywriter.Write(pemdata)
 	keywriter.Flush()
 
-	certfile, err := os.Create("/tmp/cert.crt")
+	certfile, err := os.Create("cert.crt")
 	if err != nil {
 		return err
 	}
 	defer certfile.Close()
 
 	certwriter := bufio.NewWriter(certfile)
-	httpRes, err := http.Get(certRes.Certificate)
+	cert, err := c.makeRequest("", certRes.Certificate, true)
 	if err != nil {
 		fmt.Printf("Failed downloading cert: %v\n", err)
 		return err
 	}
 
-	defer httpRes.Body.Close()
-	cert, err := ioutil.ReadAll(httpRes.Body)
 	fmt.Println("Cert PEM")
 	fmt.Println(string(cert))
 	if err != nil {

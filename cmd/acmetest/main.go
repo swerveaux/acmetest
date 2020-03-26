@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"../../internal/acmetest"
 	"github.com/spf13/pflag"
+	"github.com/swerveaux/acmetest/internal/acmetest"
 )
 
 const (
